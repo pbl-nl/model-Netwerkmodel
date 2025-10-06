@@ -1,3 +1,8 @@
+# =================================================================
+# Script om het aantal voorzieningen per buurt in te tellen voor OV
+# =================================================================
+
+
 # Load different Python libraries
 import os
 import sys
@@ -55,21 +60,21 @@ geodms_bewerkt_dir = os.path.join(r'c:\RN\z_output')
 settings_dict["geodms_bewerkt_dir"] = geodms_bewerkt_dir
 settings_dict_uitleg["geodms_bewerkt_dir"] = "Output directory (locatie waar de resultaten uit dit script worden opgeslagen)"
 
-# Locatie polygonenbestand waaraan data wordt gekoppeld (kolommen zijn gereduceerd tot buurtcode)
+# Locatie polygonenbestand cbs-buurten waaraan data wordt gekoppeld (kolommen zijn gereduceerd tot buurtcode)
 polygons = os.path.join(r"d:\Brondata\RegioIndelingen\CBS_WijkBuurt\2022\buurt_2022_zonder_cbs_cijfers.shp")
 settings_dict["polygons"] = polygons
 settings_dict_uitleg["polygons"] = "Locatie polygonenbestand waaraan later in dit script data wordt gekoppeld (kolommen met cbs-cijfers zijn hieruit verwijderd)"
 
-# Locatie polygonenbestand waaraan data wordt gekoppeld (dit is het totale bestand met alle kolommen)
+# Locatie polygonenbestand cbs-buurten waaraan data wordt gekoppeld (dit is het totale bestand met alle kolommen)
 polygons_cijfers = os.path.join(r"d:\Brondata\RegioIndelingen\CBS_WijkBuurt\2022\buurt_2022_v1.shp")
-settings_dict["polygons"] = polygons_cijfers
+# settings_dict["polygons"] = polygons_cijfers
 settings_dict_uitleg["polygons_cijfers"] = "Locatie polygonenbestand waaraan later in dit script data wordt gekoppeld (kolommen met cbs-cijfers zijn hieruit verwijderd)"
 
 # type car network
 type_carnetwork = "OSM2022" #tomtom zonder jaar invullen (staat verderop bij datum), indien geprojecteerd op osm jaar osm invullen
 
 # ======================================
-# Analyse datum date (datum in bestandsnaam) 
+# Analyse datum date (tbv datum in bestandsnaam) 
 date = ""
 settings_dict["date"] = date
 settings_dict_uitleg["date"] = "Analysis date (datum in bestandsnaam) "
@@ -84,7 +89,7 @@ settings_dict_uitleg["type_run"] = "Type run"
 
 # ======================================
 # vul in TT of B
-traveltime_banen = 'TT'
+traveltime_banen = 'TT' #traveltime berekening
 # ======================================
 
 # Vaststellen public of private transport
@@ -98,7 +103,7 @@ settings_dict["public_private"] = public_private
 settings_dict_uitleg["public_private"] = "Betreft het een run met public of private transport"
 
 # ======================================
-# Stel tijdblok in bij Private Transport of "" bij OV
+# Stel tijdblok in bij Private Transport of "" bij OV - enkel tbv naamgeving
 tijdblok = "" #MonTue #WedThuFri #SatSun
 if tijdblok != "":
     tijdblok_private = "_" + tijdblok
@@ -118,13 +123,13 @@ run = indicator + traveltime_banen + "_" + type_run + carnetwork + "_" + date + 
 settings_dict["run"] = run
 settings_dict_uitleg["run"] = "Naam van de run"
 
-# 1h of 2h gemiddelden
+# 1h of 2h gemiddelden - enkel tbv naamgeving
 gem_hour = ""
-# selectie
+# selectie - enkel tbv naamgeving
 subset = "" #"_W10"  #"_" + "cat_1_2_4"
-# walking time biking time variant
+# walking time biking time variant - enkel tbv naamgeving
 walkbike = ""
-# zonder of met wachttijd
+# zonder of met wachttijd - enkel tbv naamgeving
 wachttijd = "" #zw
 
 # Vaststellen specifieke in- en output directory
@@ -242,7 +247,7 @@ except:
     print("Something went wrong creating the new File-geodatabase {}".format(fgdb_name))
     
 ### 1. Aanmaken tabellen met GeoDMS output, voorzien van ontbrekende buurtcodes
-# Ruwe GeoDMS output voorzien van ontbrekende buurtcodes
+# Ruwe GeoDMS output opslaan voorzien van ontbrekende buurtcodes
 
 y_in = os.path.join(geodms_output_dir)#, run+"_"+wachttijd+"_"+walkbike+"_"+gem_hour+subset)
 y_out = os.path.join(geodms_bewerkt_dir, run+"_"+wachttijd+"_"+walkbike+"_"+gem_hour+subset)
@@ -258,7 +263,7 @@ input_files_dir = os.listdir(y_in)
 settings_dict["input_files_dir"] = input_files_dir
 settings_dict_uitleg["input_files_dir"] = "PM"
 
-# Opschonen input_files_dir
+# Verwijder alle .xml, .zip en .dms bestanden uit de lijst input_files_dir
 for filename in input_files_dir:
     if ".xml" in filename:
         input_files_dir.remove(filename)
@@ -279,6 +284,7 @@ settings_dict_uitleg["y_out_file"] = "PM"
 
 varianten_car = ['MaxSpeed', 'MorningRush', 'NoonRush', 'LateEveningRush']
 
+# inlezen data
 if public_private == "Private transport":
     if type_run in y_out_file:
         y_out_file_export_to_map = y_out_file
@@ -289,18 +295,6 @@ if public_private == "Private transport":
     orgfile_private = pd.read_csv(y_in_file, sep = ';')
     orgfile_private = orgfile_private.rename(columns={'Org': 'OrgName', 'Dst': 'DestName'})
     
-    if type_run == "car":
-        # correctie toepassen op reisijden car voor alle tijdstippen met het aantal minuten in variabele extraminuten_car
-        orgfile_private = pd.merge(orgfile_private, geodms_ids, left_on='DestName', right_on=koppel_identificatie, how='inner') #outer is vervangen door inner omdat er records werden toegevoegd zonder OrgName
-
-        print("Reistijden voor alle tijdstippen corrigeren met aantal minuten, afhankelijk van stedelijkheidsklasse waar destination is gevestigd {}".format(correctie_vertrekreistijd_parkeerzoektijd))
-        for col_car in orgfile_private.columns.tolist():
-            if col_car in varianten_car:
-                print("Corrigeren {}".format(col_car))
-                orgfile_private[col_car] = orgfile_private[col_car] + orgfile_private["Correctie"]        
-        del orgfile_private[koppel_identificatie]
-        del orgfile_private["Correctie"]
-
     print("Ingelezen '{}' bestand bevat {} records.".format(public_private, len(orgfile_private.index)))
     data = pd.merge(region_code, orgfile_private, on='OrgName', how='outer')
     data = data.replace(np.nan, -99999).sort_values(by=['OrgName'])
@@ -345,7 +339,7 @@ columns_dict["Median_TT_1213h"] = "1213h"
 columns_dict["Median_TT_2122h"] = "2122h"
 
 
-### Tabel maken met aantal bestemmingen (alleen draaien bij TT)
+### Tabel maken met aantal bestemmingen per buurt bereikbaar
 columns = []
 columns_dict = {}
 

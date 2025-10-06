@@ -1,3 +1,8 @@
+# =================================================================
+# Script om het aantal voorzieningen per buurt in te tellen voor OV
+# =================================================================
+
+
 # Load different Python libraries
 import os
 import sys
@@ -56,18 +61,18 @@ geodms_bewerkt_dir = os.path.join(r'c:\RN\z_output')
 settings_dict["geodms_bewerkt_dir"] = geodms_bewerkt_dir
 settings_dict_uitleg["geodms_bewerkt_dir"] = "Output directory (locatie waar de resultaten uit dit script worden opgeslagen)"
 
-# Locatie polygonenbestand waaraan data wordt gekoppeld (kolommen zijn gereduceerd tot buurtcode)
+# Locatie polygonenbestand cbs-buurten waaraan data wordt gekoppeld (kolommen zijn gereduceerd tot buurtcode)
 polygons = os.path.join(r"d:\Brondata\RegioIndelingen\CBS_WijkBuurt\2022\buurt_2022_zonder_cbs_cijfers.shp")
 settings_dict["polygons"] = polygons
 settings_dict_uitleg["polygons"] = "Locatie polygonenbestand waaraan later in dit script data wordt gekoppeld (kolommen met cbs-cijfers zijn hieruit verwijderd)"
 
-# Locatie polygonenbestand waaraan data wordt gekoppeld (dit is het totale bestand met alle kolommen)
+# Locatie polygonenbestand cbs-buurten waaraan data wordt gekoppeld (dit is het totale bestand met alle kolommen)
 polygons_cijfers = os.path.join(r"d:\Brondata\RegioIndelingen\CBS_WijkBuurt\2022\buurt_2022_v1.shp")
-settings_dict["polygons"] = polygons_cijfers
+# settings_dict["polygons"] = polygons_cijfers
 settings_dict_uitleg["polygons_cijfers"] = "Locatie polygonenbestand waaraan later in dit script data wordt gekoppeld (kolommen met cbs-cijfers zijn hieruit verwijderd)"
 
 # ======================================
-# Analyse datum date (datum in bestandsnaam) 
+# Analyse datum date (tbv datum in bestandsnaam) 
 date = "20221004"
 settings_dict["date"] = date
 settings_dict_uitleg["date"] = "Analysis date (datum in bestandsnaam) "
@@ -75,14 +80,14 @@ settings_dict_uitleg["date"] = "Analysis date (datum in bestandsnaam) "
 
 # ======================================
 # Type run
-type_run = "WOVWwWW"
+type_run = "WOVWwWW" #lopen_ov_lopen
 settings_dict["type_run"] = type_run
 settings_dict_uitleg["type_run"] = "Type run"
 # ======================================
 
 # ======================================
 # vul in TT of B
-traveltime_banen = 'TT'
+traveltime_banen = 'TT' #traveltime berekening
 # ======================================
 
 # Vaststellen public of private transport
@@ -96,7 +101,7 @@ settings_dict["public_private"] = public_private
 settings_dict_uitleg["public_private"] = "Betreft het een run met public of private transport"
 
 # ======================================
-# Stel tijdblok in bij Private Transport of "" bij OV
+# Stel tijdblok in bij Private Transport of "" bij OV - enkel tbv naamgeving
 tijdblok = ""
 if tijdblok != "":
     tijdblok_private = "_" + tijdblok
@@ -111,13 +116,13 @@ run = indicator + traveltime_banen + "_" + type_run + "_" + date + tijdblok_priv
 settings_dict["run"] = run
 settings_dict_uitleg["run"] = "Naam van de run"
 
-# 1h of 2h gemiddelden
+# 1h of 2h gemiddelden - enkel tbv naamgeving
 gem_hour = "2h"
-# selectie
+# selectie - enkel tbv naamgeving
 subset = "_bj_havo_vwo" #"_" + "cat_1_2_4"
-# walking time biking time variant
+# walking time biking time variant - enkel tbv naamgeving
 walkbike = ""
-# zonder of met wachttijd
+# zonder of met wachttijd - enkel tbv naamgeving
 wachttijd = "zw"
 
 # Vaststellen specifieke in- en output directory
@@ -239,7 +244,7 @@ except:
     print("Something went wrong creating the new File-geodatabase {}".format(fgdb_name))
     
 ### 1. Aanmaken tabellen met GeoDMS output, voorzien van ontbrekende buurtcodes
-# Ruwe GeoDMS output voorzien van ontbrekende buurtcodes
+# Ruwe GeoDMS output opslaan voorzien van ontbrekende buurtcodes
 
 y_in = os.path.join(geodms_output_dir)#, run+"_"+wachttijd+"_"+walkbike+"_"+gem_hour+subset)
 y_out = os.path.join(geodms_bewerkt_dir, run+"_"+wachttijd+"_"+walkbike+"_"+gem_hour+subset)
@@ -252,7 +257,7 @@ input_files_dir = os.listdir(y_in)
 settings_dict["input_files_dir"] = input_files_dir
 settings_dict_uitleg["input_files_dir"] = "PM"
 
-# Opschonen input_files_dir
+# Verwijder alle .xml, .zip en .dms bestanden uit de lijst input_files_dir
 for filename in input_files_dir:
     if ".xml" in filename:
         input_files_dir.remove(filename)
@@ -271,7 +276,7 @@ y_out_file = os.path.join(y_out, input_files_dir[0]).replace(".csv", "_allbrt.cs
 settings_dict["y_out_file"] = y_out_file
 settings_dict_uitleg["y_out_file"] = "PM"
 
-
+# inlezen data en opbouwen van databestand
 if public_private == "Private transport":
     print("Private transport")
 else:
@@ -496,7 +501,7 @@ else:
     print(y_out_file)
 print("{}".format(len(data['OrgName'].unique().tolist())))
 
-### Tabel maken met aantal bestemmingen (alleen draaien bij TT)
+### Tabel maken met aantal bestemmingen per buurt bereikbaar
 columns = []
 columns_dict = {}
 
